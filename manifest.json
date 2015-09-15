@@ -1,11 +1,11 @@
 {
-  "bot_id": "demo",
-  "title": "My simple bot",
-  "description": "This is a simple bot",
+  "bot_id": "volodymyr_vitvitskyi",
+  "title": "NATIONAL BANK OF THE REPUBLIC OF BELARUS",
+  "description": "http://www.nbrb.by/ at https://missions.opencorporates.com/missions/639/claim",
   "language": "python",
   "data_type": "primary data",
   "identifying_fields": [
-    "number"
+    "license_number"
   ],
   "company_fields": {
     "name": "company"
