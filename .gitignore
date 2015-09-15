@@ -1,0 +1,4 @@
+.tox/
+output/
+notebooks/
+data/
