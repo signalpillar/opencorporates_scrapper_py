@@ -22,14 +22,39 @@ import requests
 from bs4 import BeautifulSoup as bs
 
 
-BankDetails = collections.namedtuple('BankDetails', 'name join_stock_company license_number issue_date')
+BankDetails = collections.namedtuple('BankDetails', 'name full_name license_number issue_date')
 BankId = collections.namedtuple("BankId", "id name")
 
 
 BANK_DETAILS_URL_TEMPLATE = "http://www.nbrb.by/engl/system/register.asp?bank={}"
 
 
-strip_spare = lambda s: s.strip().strip('\'"')
+def strip_enclosing(value, start_symb, end_symb=None):
+    end_symb = end_symb or start_symb
+    if value.startswith(start_symb) and value.endswith(end_symb):
+        value = value[1:-1]
+    return value
+
+
+def remove_tags(value, tag_name):
+    return value.replace(
+        '<{}>'.format(tag_name), ''
+    ).replace(
+        '</{}>'.format(tag_name), ''
+    )
+
+
+is_even = lambda x: x % 2 == 0
+
+
+def strip_spare(value):
+    if value:
+        value = strip_enclosing(value.strip(), '(', ')')
+        quotes_num = value.count('"')
+        if quotes_num and is_even(quotes_num):
+            value = strip_enclosing(value, '"')
+        value = remove_tags(value, 'b')
+    return value
 
 
 def parse_select_options(select_el):
@@ -55,16 +80,23 @@ def parse_list_of_banks(content):
 
 
 def parse_bank_name(content):
-    '''str -> str -> tuple[str, str]
+    '''str -> str -> tuple[str?, str?]
 
-    Example of the HTML to find
+    Example of the HTML to find::
 
-    </form>
-    Open Joint–Stock Company <b>"Paritetbank"</b>(OJSC "Paritetbank")
+        </form>
+        Open Joint–Stock Company <b>"Paritetbank"</b>(OJSC "Paritetbank")
+
+    In parentheses we have a full name, but it is an optional value.
+
+    Result of sample parsing::
+
+        ("Open Joint–Stock Company \"Paritetbank\"", "OJSC \"Paritetbank\"")
     '''
-    matched = re.search('</form>.+?<b>(.*?)</b>.*?\((.*?)\)', content, re.DOTALL)
+    matched = re.search('</form>(.+?)(\(.*?)?<br>', content, re.DOTALL)
     if matched:
         return map(strip_spare, matched.groups())
+    return None, None
 
 
 def parse_license(content):
@@ -87,12 +119,12 @@ def parse_operations(el):
 
 def parse_bank_details(content):
 
-    stock_company_name, bank_name = parse_bank_name(content)
+    full_name, name = parse_bank_name(content)
     license_number, licese_issue_date = parse_license(content)
 
     return BankDetails(
-        name=bank_name,
-        join_stock_company=stock_company_name,
+        name=name,
+        full_name=full_name,
         license_number=license_number,
         issue_date=licese_issue_date,
     )
@@ -124,6 +156,8 @@ def main(base_url, start_url):
     details = it.imap(lambda bank_id: get_bank_detials(base_url, bank_id.id), bank_ids)
 
     for bank_id, details in it.izip(ids_for_output, details):
+        if not details.name:
+            details = details._replace(name=bank_id.name)
         bank_details_dict = details._asdict()
         bank_details_dict.update(dict(
             company_name=details.name,
