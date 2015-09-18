@@ -1,7 +1,7 @@
 {
   "bot_id": "volodymyr_vitvitskyi",
   "title": "NATIONAL BANK OF THE REPUBLIC OF BELARUS",
-  "description": "http://www.nbrb.by/ at https://missions.opencorporates.com/missions/639/claim",
+  "description": "http://www.nbrb.by/ at https://missions.opencorporates.com/missions/639/claim. Code base at https://github.com/signalpillar/opencorporates_scrapper_py",
   "language": "python",
   "data_type": "primary data",
   "identifying_fields": [

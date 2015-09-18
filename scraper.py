@@ -3,9 +3,10 @@
 Target URL: http://www.nbrb.by/engl/system/register.asp?bank=133
 Every bank has a:
  - name: str
- - Open Joint–Stock Company: str
+ - full name: str
+ - company type: (Open|Closed) Joint–Stock Company
  - Banking license number: str
- - issue date: date
+ - License issue date: date
  - operations: list[str] ?
 """
 
@@ -124,10 +125,38 @@ def parse_bank_details(content):
 
     return BankDetails(
         name=name,
-        full_name=full_name,
+        full_name=full_name.strip(),
         license_number=license_number,
         issue_date=licese_issue_date,
     )
+
+
+class CompanyTypes(object):
+
+    JS = "Joint Stock Company"
+    OPEN = "Open {}".format(JS)
+    CLOSED = "Closed {}".format(JS)
+
+    #: Mapping between free form identifier used in text to normalized version
+    get_by_identifier = {
+        'closed': CLOSED,
+        'close': CLOSED,
+        'private': CLOSED,
+        'open': OPEN,
+    }.get
+
+
+def parse_company_type(value):
+    """Parse company type from the provided value.
+
+    :param str value: Value to determine company type from.
+        Expected that value contains '(closed|open|private) joint stock' substring to determine
+        of the types specified in the :class:`CompanyTypes`.
+    :rtype: str or None
+    """
+    matched = re.search("(\w*?)\s*joint", value.lower())
+    if matched is not None:
+        return CompanyTypes.get_by_identifier(matched.group(1), CompanyTypes.JS)
 
 
 def get_banks(url):
@@ -162,6 +191,7 @@ def main(base_url, start_url):
         bank_details_dict.update(dict(
             company_name=details.name,
             category=FINANCIAL_CATEGORY,
+            jurisdiction_classification=parse_company_type(details.full_name),
             source_url=BANK_DETAILS_URL_TEMPLATE.format(bank_id.id),
             sample_date=datetime.datetime.now().isoformat()))
 
